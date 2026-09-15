@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Build Log — Campervan Conversion Budget</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Build Log">
+<meta name="theme-color" content="#1E2A38">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%231E2A38'/%3E%3Crect x='14' y='14' width='72' height='72' rx='8' fill='none' stroke='%23B4502A' stroke-width='5'/%3E%3Ctext x='50' y='62' font-family='Georgia,serif' font-weight='700' font-size='34' fill='%23B4502A' text-anchor='middle'%3EBL%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1E2A38;
+    --ink-soft:#2B3A4C;
+    --canvas:#EDEDE5;
+    --canvas-hi:#F7F6F1;
+    --rust:#B4502A;
+    --rust-dark:#8F3F20;
+    --green:#3F6B52;
+    --amber:#D69A2D;
+    --chalk:#FAF9F6;
+    --steel:#5B6570;
+    --line:#D8D6CB;
+    --shadow: 0 1px 0 rgba(30,42,56,0.06), 0 8px 20px -12px rgba(30,42,56,0.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3,.display{
+    font-family:'Oswald',system-ui,sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+    font-weight:600;
+    margin:0;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input{font-family:inherit;}
+  a{color:inherit;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    background:var(--ink);
+    color:var(--chalk);
+    padding:calc(18px + env(safe-area-inset-top)) 24px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    border-bottom:3px solid var(--rust);
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{
+    width:34px;height:34px;border:2px solid var(--rust);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Oswald';font-weight:700;font-size:15px;color:var(--rust);
+    transform:rotate(-4deg);
+    flex-shrink:0;
+  }
+  .brand h1{font-size:19px;color:var(--chalk);}
+  .brand .sub{font-size:11px;color:#B8C2CC;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;}
+  .topbar-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .curr-toggle{display:flex;background:var(--ink-soft);border-radius:8px;overflow:hidden;border:1px solid #3A4C60;}
+  .curr-toggle button{
+    background:none;border:none;color:#B8C2CC;padding:7px 12px;font-size:13px;font-weight:600;
+  }
+  .curr-toggle button.active{background:var(--rust);color:var(--chalk);}
+  .icon-btn{
+    background:var(--ink-soft);border:1px solid #3A4C60;color:var(--chalk);
+    padding:8px 13px;border-radius:8px;font-size:13px;font-weight:500;
+    display:flex;align-items:center;gap:6px;
+  }
+  .icon-btn:hover{background:#354759;}
+
+  /* ---------- Layout ---------- */
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px calc(80px + env(safe-area-inset-bottom));}
+
+  /* ---------- Dashboard / gauge ---------- */
+  .dash{
+    background:var(--chalk);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:26px 26px 22px;
+    display:grid;
+    grid-template-columns:200px 1fr;
+    gap:28px;
+    align-items:center;
+    margin-bottom:26px;
+  }
+  @media(max-width:640px){ .dash{grid-template-columns:1fr;justify-items:center;text-align:center;} }
+
+  .gauge-wrap{position:relative;width:180px;height:180px;}
+  .gauge-label{
+    position:absolute;bottom:14px;left:0;right:0;text-align:center;
+  }
+  .gauge-pct{font-family:'IBM Plex Mono';font-weight:600;font-size:26px;line-height:1;}
+  .gauge-caption{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--steel);margin-top:3px;}
+
+  .dash-figures{display:flex;flex-direction:column;gap:14px;}
+  .fig-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;}
+  .fig{}
+  .fig .k{font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--steel);margin-bottom:3px;}
+  .fig .v{font-family:'IBM Plex Mono';font-weight:600;font-size:22px;}
+  .fig .v.over{color:var(--rust-dark);}
+  .budget-edit{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--steel);
+  }
+  .budget-edit button{
+    background:none;border:none;text-decoration:underline;color:var(--rust);
+    font-size:13px;padding:0;font-weight:600;
+  }
+  .status-pill{
+    display:inline-block;padding:4px 11px;border-radius:20px;font-size:12px;font-weight:600;
+    letter-spacing:0.02em;
+  }
+  .status-green{background:#E4EEE8;color:var(--green);}
+  .status-amber{background:#FBF0DA;color:#8A6414;}
+  .status-rust{background:#F5E1D8;color:var(--rust-dark);}
+
+  /* ---------- Section headers ---------- */
+  .section-head{
+    display:flex;justify-content:space-between;align-items:center;
+    margin:34px 0 14px;flex-wrap:wrap;gap:10px;
+  }
+  .section-head h2{font-size:16px;color:var(--ink);}
+  .section-head .hint{font-size:12.5px;color:var(--steel);font-family:'Inter';text-transform:none;letter-spacing:0;font-weight:400;}
+  .ghost-btn{
+    background:none;border:1px solid var(--ink);color:var(--ink);
+    padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:600;
+  }
+  .ghost-btn:hover{background:var(--ink);color:var(--chalk);}
+
+  /* ---------- Breakdown chart ---------- */
+  .breakdown{
+    background:var(--chalk);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);padding:22px 24px;margin-bottom:8px;
+    display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:center;
+  }
+  @media(max-width:560px){ .breakdown{grid-template-columns:1fr;justify-items:center;} }
+  .breakdown-empty{
+    background:var(--chalk);border:1px dashed var(--line);border-radius:14px;
+    padding:26px;text-align:center;color:var(--steel);font-size:13.5px;margin-bottom:8px;
+  }
+  .donut-legend{display:flex;flex-direction:column;gap:9px;width:100%;}
+  .legend-row{display:flex;align-items:center;gap:10px;font-size:13.5px;}
+  .legend-swatch{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
+  .legend-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .legend-pct{color:var(--steel);font-family:'IBM Plex Mono';font-size:12px;width:38px;text-align:right;flex-shrink:0;}
+  .legend-amt{font-family:'IBM Plex Mono';font-size:13px;font-weight:600;width:76px;text-align:right;flex-shrink:0;}
+
+  /* ---------- Category cards ---------- */
+  .cat-card{
+    background:var(--chalk);
+    border:1px solid var(--line);
+    border-radius:12px;
+    margin-bottom:12px;
+    overflow:hidden;
+    box-shadow:0 1px 0 rgba(30,42,56,0.04);
+  }
+  .cat-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:15px 18px;
+    cursor:pointer;
+    gap:12px;
+  }
+  .cat-head-left{display:flex;align-items:center;gap:12px;min-width:0;}
+  .cat-chip{
+    width:8px;height:8px;border-radius:50%;flex-shrink:0;
+  }
+  .cat-name{font-family:'Oswald';font-size:15px;text-transform:uppercase;letter-spacing:0.02em;}
+  .cat-count{font-size:12px;color:var(--steel);font-family:'Inter';text-transform:none;letter-spacing:0;}
+  .cat-head-right{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+  .cat-total{font-family:'IBM Plex Mono';font-weight:600;font-size:16px;}
+  .chevron{
+    width:9px;height:9px;border-right:2px solid var(--steel);border-bottom:2px solid var(--steel);
+    transform:rotate(45deg);transition:transform 0.18s ease;
+  }
+  .cat-card.open .chevron{transform:rotate(-135deg);}
+
+  .cat-body{
+    max-height:0;overflow:hidden;transition:max-height 0.25s ease;
+    border-top:1px solid transparent;
+  }
+  .cat-card.open .cat-body{border-top:1px solid var(--line); max-height:2000px;}
+
+  .item-list{padding:6px 18px 4px;}
+  .item-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 0;border-bottom:1px dashed var(--line);gap:10px;
+  }
+  .item-row:last-child{border-bottom:none;}
+  .item-desc{font-size:14px;min-width:0;overflow-wrap:anywhere;}
+  .item-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .item-amt{font-family:'IBM Plex Mono';font-size:14px;font-weight:500;}
+  .del-btn{
+    background:none;border:none;color:var(--steel);font-size:18px;line-height:1;
+    padding:2px 4px;border-radius:4px;
+  }
+  .del-btn:hover{color:var(--rust);background:#F5E1D8;}
+  .empty-row{padding:14px 0;color:var(--steel);font-size:13.5px;font-style:italic;}
+
+  .del-cat-btn{
+    background:none;border:none;color:var(--steel);font-size:12px;text-decoration:underline;
+    padding:2px 4px;
+  }
+  .del-cat-btn:hover{color:var(--rust-dark);}
+
+  .add-cat-card{
+    background:var(--chalk);border:1.5px dashed var(--line);border-radius:12px;
+    margin-bottom:12px;padding:16px 18px;
+  }
+  .add-cat-card .add-cat-trigger{
+    display:flex;align-items:center;gap:8px;background:none;border:none;
+    color:var(--steel);font-family:'Oswald';text-transform:uppercase;letter-spacing:0.02em;
+    font-size:14px;font-weight:600;width:100%;text-align:left;
+  }
+  .add-cat-card .add-cat-trigger:hover{color:var(--ink);}
+  .add-cat-card .plus-circle{
+    width:22px;height:22px;border-radius:50%;border:1.5px solid var(--steel);
+    display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;
+  }
+  .add-cat-form{display:none;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .add-cat-form.open{display:flex;}
+  .add-cat-form input{
+    flex:1 1 200px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+    font-size:14px;background:var(--canvas-hi);
+  }
+  .add-cat-form input:focus{outline:2px solid var(--rust);outline-offset:1px;border-color:var(--rust);}
+
+  .add-row{
+    display:flex;gap:8px;padding:14px 18px 18px;flex-wrap:wrap;
+  }
+  .add-row input[type=text]{
+    flex:2 1 160px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+    font-size:14px;background:var(--canvas-hi);
+  }
+  .add-row .amt-field{flex:1 1 110px;position:relative;}
+  .add-row .amt-field span{
+    position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--steel);font-size:14px;
+  }
+  .add-row input[type=number]{
+    width:100%;padding:10px 12px 10px 24px;border:1px solid var(--line);border-radius:8px;
+    font-size:14px;background:var(--canvas-hi);
+  }
+  .add-row input:focus{outline:2px solid var(--rust);outline-offset:1px;border-color:var(--rust);}
+  .add-btn{
+    background:var(--rust);color:var(--chalk);border:none;border-radius:8px;
+    padding:10px 16px;font-size:13.5px;font-weight:600;flex-shrink:0;
+  }
+  .add-btn:hover{background:var(--rust-dark);}
+
+  .range-toggle{
+    padding:0 18px 14px;
+  }
+  .range-toggle button{
+    background:none;border:none;color:var(--steel);font-size:12px;text-decoration:underline;padding:0;
+  }
+  .range-note{
+    font-size:12.5px;color:var(--steel);background:var(--canvas);border-radius:8px;
+    padding:9px 12px;margin:0 18px 14px;line-height:1.5;
+  }
+
+  /* ---------- Onboarding overlay ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(30,42,56,0.55);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .overlay.hidden{display:none;}
+  .modal{
+    background:var(--chalk);border-radius:14px;max-width:440px;width:100%;
+    padding:32px 30px;box-shadow:0 20px 60px rgba(0,0,0,0.3);
+    border-top:4px solid var(--rust);
+  }
+  .modal .step-tag{font-size:11px;letter-spacing:0.1em;color:var(--rust);text-transform:uppercase;font-weight:700;margin-bottom:8px;}
+  .modal h2{font-size:22px;margin-bottom:10px;}
+  .modal p{font-size:14.5px;color:var(--steel);line-height:1.55;margin:0 0 20px;}
+  .modal .amt-field{position:relative;margin-bottom:18px;}
+  .modal .amt-field span{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--steel);font-size:18px;}
+  .modal input[type=number]{
+    width:100%;padding:14px 14px 14px 28px;font-size:20px;border:1.5px solid var(--line);
+    border-radius:10px;font-family:'IBM Plex Mono';background:var(--canvas-hi);
+  }
+  .modal input:focus{outline:none;border-color:var(--rust);}
+  .modal-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .primary-btn{
+    background:var(--rust);color:var(--chalk);border:none;border-radius:9px;
+    padding:13px 20px;font-size:14.5px;font-weight:700;flex:1;
+  }
+  .primary-btn:hover{background:var(--rust-dark);}
+  .text-btn{background:none;border:none;color:var(--steel);font-size:13.5px;text-decoration:underline;padding:13px 4px;}
+
+  /* ---------- Footer / summary actions ---------- */
+  .footer-actions{
+    display:flex;gap:10px;flex-wrap:wrap;margin-top:32px;padding-top:22px;border-top:1px solid var(--line);
+  }
+  .reset-link{
+    margin-left:auto;background:none;border:none;color:var(--steel);font-size:12.5px;text-decoration:underline;
+  }
+  .reset-link:hover{color:var(--rust-dark);}
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--chalk);padding:11px 18px;border-radius:9px;font-size:13.5px;
+    opacity:0;transition:all 0.25s ease;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,0.25);z-index:60;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ---------- Print ---------- */
+  @media print{
+    .topbar, .add-row, .footer-actions, .overlay, .range-toggle, .del-btn, .cat-head .chevron{display:none !important;}
+    body{background:#fff;}
+    .cat-card{break-inside:avoid;box-shadow:none;border:1px solid #ccc;}
+    .cat-body{max-height:none !important;}
+    .dash{box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">BL</div>
+    <div>
+      <h1>The Build Log</h1>
+      <div class="sub">Campervan conversion budget</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <div class="curr-toggle" id="currToggle">
+      <button data-curr="£" class="active">£ GBP</button>
+      <button data-curr="$">$ USD</button>
+      <button data-curr="€">€ EUR</button>
+    </div>
+    <button class="icon-btn" id="printBtn">Print summary</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 180 180" width="180" height="180">
+        <path d="M 20 140 A 70 70 0 1 1 160 140" fill="none" stroke="#E3E1D5" stroke-width="16" stroke-linecap="round"/>
+        <path id="gaugeArc" d="M 20 140 A 70 70 0 1 1 160 140" fill="none" stroke="#3F6B52" stroke-width="16" stroke-linecap="round" stroke-dasharray="0 330" />
+      </svg>
+      <div class="gauge-label">
+        <div class="gauge-pct mono" id="gaugePct">0%</div>
+        <div class="gauge-caption">of budget spent</div>
+      </div>
+    </div>
+    <div class="dash-figures">
+      <div class="fig-row">
+        <div class="fig">
+          <div class="k">Your budget</div>
+          <div class="v mono" id="budgetFig">£0</div>
+        </div>
+        <div class="budget-edit">
+          <button id="editBudgetBtn">change budget</button>
+        </div>
+      </div>
+      <div class="fig-row">
+        <div class="fig">
+          <div class="k">Spent so far</div>
+          <div class="v mono" id="spentFig">£0</div>
+        </div>
+        <div class="fig">
+          <div class="k">Remaining</div>
+          <div class="v mono" id="remainFig">£0</div>
+        </div>
+      </div>
+      <div><span class="status-pill status-green" id="statusPill">On track</span></div>
+    </div>
+  </div>
+
+  <div id="breakdownWrap"></div>
+
+  <div class="section-head">
+    <h2>Cost categories</h2>
+    <span class="hint">Tap a category to open it, then log a cost as you spend</span>
+  </div>
+
+  <div id="catList"></div>
+
+  <div class="footer-actions">
+    <button class="ghost-btn" id="copySummaryBtn">Copy summary as text</button>
+    <button class="reset-link" id="resetBtn">Start over / clear all data</button>
+  </div>
+
+</div>
+
+<!-- Onboarding overlay -->
+<div class="overlay" id="onboardOverlay">
+  <div class="modal">
+    <div class="step-tag">Step 1 of 1</div>
+    <h2>What's your build budget?</h2>
+    <p>Set the total you're aiming to spend on the whole conversion. You can change this any time, it's just your starting mark so the gauge above has something to measure against.</p>
+    <div class="amt-field">
+      <span id="onboardCurrSign">£</span>
+      <input type="number" id="onboardBudgetInput" placeholder="e.g. 12000" min="0" step="50">
+    </div>
+    <div class="modal-actions">
+      <button class="primary-btn" id="onboardSaveBtn">Start tracking</button>
+      <button class="text-btn" id="onboardSkipBtn">I'll set this later</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Storage (falls back to memory if localStorage is unavailable) ---------- */
+  var memoryStore = {};
+  var storage = {
+    get:function(key){
+      try{ var v = localStorage.getItem(key); return v===null ? undefined : JSON.parse(v); }
+      catch(e){ return memoryStore[key]; }
+    },
+    set:function(key, val){
+      try{ localStorage.setItem(key, JSON.stringify(val)); }
+      catch(e){ memoryStore[key] = val; }
+    }
+  };
+
+  var CATS = [
+    {id:'vehicle', name:'Base vehicle', color:'#B4502A', range:'£3,000 – £12,000 for a used van in sound condition, before any conversion work.', builtIn:true},
+    {id:'insulation', name:'Insulation', color:'#3F6B52', range:'£150 – £500 for sheep wool, PIR board or Thinsulate across a mid-size van.', builtIn:true},
+    {id:'electrics', name:'Electrics', color:'#D69A2D', range:'£600 – £2,500 for battery, inverter, solar and wiring, depending on system size.', builtIn:true},
+    {id:'water', name:'Water system', color:'#5B7FA6', range:'£150 – £600 for tanks, pump, taps and basic filtration.', builtIn:true},
+    {id:'furniture', name:'Furniture & build materials', color:'#8F5FA3', range:'£500 – £2,000 for ply, framing, worktop and fixings.', builtIn:true},
+    {id:'gas', name:'Gas', color:'#C77B3D', range:'£150 – £450 for hob, bottle, regulator and certified installation.', builtIn:true},
+    {id:'upholstery', name:'Upholstery & soft furnishings', color:'#4E8A7A', range:'£200 – £900 for cushions, curtains and seat covers.', builtIn:true},
+    {id:'admin', name:'Admin & legal', color:'#6B7280', range:'£150 – £600 for insurance changes, IVA/DVLA reclassification and certification.', builtIn:true},
+    {id:'other', name:'Other', color:'#9AA0A6', range:'Anything that doesn\'t fit neatly elsewhere, tools, storage, transport for parts.', builtIn:true}
+  ];
+  var CUSTOM_PALETTE = ['#7C9A72','#A0522D','#4C6B8A','#9C6644','#6B8F71','#B08968','#5C7A99','#8A6D3B','#7A5C99','#54806B'];
+
+  var state = storage.get('buildlog_state') || { budget:null, currency:'£', items:{}, customCats:[] };
+  if(!state.customCats) state.customCats = [];
+  CATS.forEach(function(c){ if(!state.items[c.id]) state.items[c.id] = []; });
+
+  function save(){ storage.set('buildlog_state', state); }
+
+  function allCats(){ return CATS.concat(state.customCats); }
+
+  function nextCustomColor(){
+    var used = state.customCats.length;
+    return CUSTOM_PALETTE[used % CUSTOM_PALETTE.length];
+  }
+
+  function fmt(n){
+    var num = Number(n)||0;
+    return state.currency + num.toLocaleString(undefined,{maximumFractionDigits:0});
+  }
+
+  function totalFor(catId){
+    var items = state.items[catId] || [];
+    return items.reduce(function(s,i){ return s + Number(i.amt||0); },0);
+  }
+  function grandTotal(){
+    return allCats().reduce(function(s,c){ return s + totalFor(c.id); },0);
+  }
+
+  /* ---------- Render category cards ---------- */
+  var catListEl = document.getElementById('catList');
+
+  function render(){
+    catListEl.innerHTML = '';
+    allCats().forEach(function(cat){
+      if(!state.items[cat.id]) state.items[cat.id] = [];
+      var items = state.items[cat.id];
+      var total = totalFor(cat.id);
+
+      var card = document.createElement('div');
+      card.className = 'cat-card';
+      card.dataset.cat = cat.id;
+
+      var head = document.createElement('div');
+      head.className = 'cat-head';
+      head.innerHTML =
+        '<div class="cat-head-left">'+
+          '<span class="cat-chip" style="background:'+cat.color+'"></span>'+
+          '<div><div class="cat-name">'+escapeHtml(cat.name)+'</div>'+
+          '<div class="cat-count">'+items.length+(items.length===1?' item':' items')+'</div></div>'+
+        '</div>'+
+        '<div class="cat-head-right">'+
+          (cat.builtIn ? '' : '<button class="del-cat-btn" type="button" title="Remove this category">remove</button>')+
+          '<span class="cat-total mono">'+fmt(total)+'</span>'+
+          '<span class="chevron"></span>'+
+        '</div>';
+      head.addEventListener('click', function(){
+        card.classList.toggle('open');
+      });
+      if(!cat.builtIn){
+        var delCatBtn = head.querySelector('.del-cat-btn');
+        delCatBtn.addEventListener('click', function(e){
+          e.stopPropagation();
+          if(confirm('Remove "'+cat.name+'" and any costs logged under it?')){
+            state.customCats = state.customCats.filter(function(c){ return c.id!==cat.id; });
+            delete state.items[cat.id];
+            save(); render();
+          }
+        });
+      }
+
+      var body = document.createElement('div');
+      body.className = 'cat-body';
+
+      var rangeToggle = document.createElement('div');
+      var rangeNote = document.createElement('div');
+      if(cat.range){
+        rangeToggle.className = 'range-toggle';
+        rangeToggle.innerHTML = '<button type="button">What do people typically spend here?</button>';
+        rangeNote.className = 'range-note';
+        rangeNote.style.display = 'none';
+        rangeNote.textContent = cat.range + ' Rough guide only, every build is different.';
+        rangeToggle.querySelector('button').addEventListener('click', function(){
+          rangeNote.style.display = rangeNote.style.display === 'none' ? 'block' : 'none';
+        });
+      }
+
+      var itemList = document.createElement('div');
+      itemList.className = 'item-list';
+      if(items.length === 0){
+        itemList.innerHTML = '<div class="empty-row">Nothing logged yet. Add your first cost below.</div>';
+      } else {
+        items.forEach(function(item, idx){
+          var row = document.createElement('div');
+          row.className = 'item-row';
+          row.innerHTML =
+            '<span class="item-desc">'+escapeHtml(item.desc)+'</span>'+
+            '<span class="item-right"><span class="item-amt mono">'+fmt(item.amt)+'</span>'+
+            '<button class="del-btn" title="Remove">×</button></span>';
+          row.querySelector('.del-btn').addEventListener('click', function(e){
+            e.stopPropagation();
+            state.items[cat.id].splice(idx,1);
+            save(); render();
+          });
+          itemList.appendChild(row);
+        });
+      }
+
+      var addRow = document.createElement('div');
+      addRow.className = 'add-row';
+      addRow.innerHTML =
+        '<input type="text" placeholder="What did you buy? e.g. Victron 100Ah battery" class="descInput">'+
+        '<div class="amt-field"><span>'+state.currency+'</span><input type="number" placeholder="0" min="0" step="1" class="amtInput"></div>'+
+        '<button class="add-btn" type="button">Add cost</button>';
+
+      var descInput = addRow.querySelector('.descInput');
+      var amtInput = addRow.querySelector('.amtInput');
+      var addBtn = addRow.querySelector('.add-btn');
+
+      function commitAdd(){
+        var d = descInput.value.trim();
+        var a = parseFloat(amtInput.value);
+        if(!d || isNaN(a) || a < 0){
+          if(!d) descInput.focus(); else amtInput.focus();
+          return;
+        }
+        state.items[cat.id].push({desc:d, amt:a});
+        save(); render();
+        // reopen this category and focus fresh input for fast repeat entry
+        var reopened = catListEl.querySelector('[data-cat="'+cat.id+'"]');
+        if(reopened){
+          reopened.classList.add('open');
+          var di = reopened.querySelector('.descInput');
+          if(di) di.focus();
+        }
+        showToast('Added to '+cat.name);
+      }
+      addBtn.addEventListener('click', commitAdd);
+      [descInput, amtInput].forEach(function(el){
+        el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); commitAdd(); } });
+        el.addEventListener('click', function(e){ e.stopPropagation(); });
+      });
+
+      body.appendChild(rangeToggle);
+      body.appendChild(rangeNote);
+      body.appendChild(itemList);
+      body.appendChild(addRow);
+
+      card.appendChild(head);
+      card.appendChild(body);
+      catListEl.appendChild(card);
+    });
+
+    catListEl.appendChild(buildAddCategoryCard());
+
+    renderDash();
+    renderBreakdown();
+  }
+
+  function buildAddCategoryCard(){
+    var wrap = document.createElement('div');
+    wrap.className = 'add-cat-card';
+    wrap.innerHTML =
+      '<button type="button" class="add-cat-trigger"><span class="plus-circle">+</span> Add your own category</button>'+
+      '<div class="add-cat-form">'+
+        '<input type="text" placeholder="e.g. Roof rack, Tools, Storage" class="newCatInput" maxlength="40">'+
+        '<button class="add-btn" type="button">Add category</button>'+
+      '</div>';
+    var trigger = wrap.querySelector('.add-cat-trigger');
+    var form = wrap.querySelector('.add-cat-form');
+    var input = wrap.querySelector('.newCatInput');
+    var addBtn = wrap.querySelector('.add-btn');
+    trigger.addEventListener('click', function(){
+      form.classList.toggle('open');
+      if(form.classList.contains('open')) input.focus();
+    });
+    function commit(){
+      var name = input.value.trim();
+      if(!name) { input.focus(); return; }
+      var id = 'custom_' + Date.now();
+      state.customCats.push({id:id, name:name, color:nextCustomColor(), builtIn:false});
+      state.items[id] = [];
+      save(); render();
+      showToast('Category added');
+    }
+    addBtn.addEventListener('click', commit);
+    input.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); commit(); } });
+    return wrap;
+  }
+
+  function escapeHtml(s){
+    var d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+  }
+
+  /* ---------- Spend breakdown chart ---------- */
+  function renderBreakdown(){
+    var el = document.getElementById('breakdownWrap');
+    var rows = allCats().map(function(c){
+      return {name:c.name, color:c.color, total: totalFor(c.id)};
+    }).filter(function(r){ return r.total > 0; })
+      .sort(function(a,b){ return b.total - a.total; });
+
+    var grand = rows.reduce(function(s,r){ return s+r.total; },0);
+
+    if(rows.length === 0){
+      el.innerHTML = '<div class="breakdown-empty">Your spend breakdown will appear here once you log your first cost.</div>';
+      return;
+    }
+
+    var r = 60, cx = 75, cy = 75, circumference = 2*Math.PI*r;
+    var offset = 0;
+    var segments = rows.map(function(row){
+      var frac = row.total / grand;
+      var len = frac * circumference;
+      var seg = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+row.color+'" stroke-width="26" '+
+                 'stroke-dasharray="'+len.toFixed(2)+' '+(circumference-len).toFixed(2)+'" '+
+                 'stroke-dashoffset="'+(-offset).toFixed(2)+'" />';
+      offset += len;
+      return seg;
+    }).join('');
+
+    var legend = rows.map(function(row){
+      var pct = Math.round((row.total/grand)*100);
+      return '<div class="legend-row">'+
+        '<span class="legend-swatch" style="background:'+row.color+'"></span>'+
+        '<span class="legend-name">'+escapeHtml(row.name)+'</span>'+
+        '<span class="legend-pct">'+pct+'%</span>'+
+        '<span class="legend-amt mono">'+fmt(row.total)+'</span>'+
+        '</div>';
+    }).join('');
+
+    el.innerHTML =
+      '<div class="breakdown">'+
+        '<svg viewBox="0 0 150 150" width="150" height="150" style="transform:rotate(-90deg)">'+segments+'</svg>'+
+        '<div class="donut-legend">'+legend+'</div>'+
+      '</div>';
+  }
+
+  /* ---------- Dashboard ---------- */
+  function renderDash(){
+    var budget = Number(state.budget)||0;
+    var spent = grandTotal();
+    var remain = budget - spent;
+    var pct = budget > 0 ? Math.min(spent / budget, 1.3) : 0;
+
+    document.getElementById('budgetFig').textContent = budget > 0 ? fmt(budget) : '—';
+    document.getElementById('spentFig').textContent = fmt(spent);
+    var remainFig = document.getElementById('remainFig');
+    remainFig.textContent = budget > 0 ? fmt(Math.abs(remain)) + (remain<0 ? ' over' : '') : '—';
+    remainFig.className = 'v mono' + (remain < 0 ? ' over' : '');
+
+    var pill = document.getElementById('statusPill');
+    var arc = document.getElementById('gaugeArc');
+    var circumference = 330; // approx path length used for dasharray
+    var shown = Math.min(pct,1) * circumference;
+    arc.setAttribute('stroke-dasharray', shown.toFixed(1)+' '+circumference);
+
+    document.getElementById('gaugePct').textContent = budget > 0 ? Math.round((spent/budget)*100)+'%' : '—';
+
+    if(budget <= 0){
+      pill.textContent = 'Set a budget to track progress';
+      pill.className = 'status-pill status-amber';
+      arc.setAttribute('stroke', '#C9C6B8');
+    } else if(pct < 0.85){
+      pill.textContent = 'On track';
+      pill.className = 'status-pill status-green';
+      arc.setAttribute('stroke', '#3F6B52');
+    } else if(pct <= 1.0){
+      pill.textContent = 'Close to budget';
+      pill.className = 'status-pill status-amber';
+      arc.setAttribute('stroke', '#D69A2D');
+    } else {
+      pill.textContent = 'Over budget';
+      pill.className = 'status-pill status-rust';
+      arc.setAttribute('stroke', '#B4502A');
+    }
+  }
+
+  /* ---------- Currency toggle ---------- */
+  document.getElementById('currToggle').addEventListener('click', function(e){
+    var btn = e.target.closest('button');
+    if(!btn) return;
+    state.currency = btn.dataset.curr;
+    save();
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function(b){
+      b.classList.toggle('active', b===btn);
+    });
+    render();
+  });
+
+  /* ---------- Onboarding ---------- */
+  var overlay = document.getElementById('onboardOverlay');
+  var onboardInput = document.getElementById('onboardBudgetInput');
+
+  function showOnboardIfNeeded(){
+    if(state.budget === null || state.budget === undefined){
+      overlay.classList.remove('hidden');
+      document.getElementById('onboardCurrSign').textContent = state.currency;
+      setTimeout(function(){ onboardInput.focus(); }, 100);
+    } else {
+      overlay.classList.add('hidden');
+    }
+  }
+
+  document.getElementById('onboardSaveBtn').addEventListener('click', function(){
+    var v = parseFloat(onboardInput.value);
+    state.budget = (!isNaN(v) && v>0) ? v : null;
+    save();
+    overlay.classList.add('hidden');
+    render();
+  });
+  document.getElementById('onboardSkipBtn').addEventListener('click', function(){
+    state.budget = 0;
+    save();
+    overlay.classList.add('hidden');
+    render();
+  });
+  onboardInput.addEventListener('keydown', function(e){
+    if(e.key==='Enter'){ document.getElementById('onboardSaveBtn').click(); }
+  });
+
+  document.getElementById('editBudgetBtn').addEventListener('click', function(){
+    state.budget = null;
+    save();
+    showOnboardIfNeeded();
+  });
+
+  /* ---------- Reset ---------- */
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    if(confirm('This clears every cost you\'ve logged and your budget. This can\'t be undone. Continue?')){
+      var keepCurrency = state.currency;
+      var keepCustomCats = state.customCats;
+      state = { budget:null, currency: keepCurrency, items:{}, customCats: keepCustomCats };
+      allCats().forEach(function(c){ state.items[c.id]=[]; });
+      save();
+      render();
+      showOnboardIfNeeded();
+    }
+  });
+
+  /* ---------- Print ---------- */
+  document.getElementById('printBtn').addEventListener('click', function(){
+    // open all cards so the print view shows everything
+    document.querySelectorAll('.cat-card').forEach(function(c){ c.classList.add('open'); });
+    window.print();
+  });
+
+  /* ---------- Copy summary ---------- */
+  document.getElementById('copySummaryBtn').addEventListener('click', function(){
+    var lines = ['THE BUILD LOG — Campervan Conversion Budget',''];
+    lines.push('Budget: ' + (state.budget ? fmt(state.budget) : 'not set'));
+    lines.push('Spent: ' + fmt(grandTotal()));
+    lines.push('');
+    allCats().forEach(function(cat){
+      var items = state.items[cat.id] || [];
+      if(items.length===0) return;
+      lines.push(cat.name.toUpperCase()+' — '+fmt(totalFor(cat.id)));
+      items.forEach(function(i){ lines.push('  · '+i.desc+' — '+fmt(i.amt)); });
+      lines.push('');
+    });
+    var text = lines.join('\n');
+    function done(ok){ showToast(ok ? 'Summary copied' : 'Could not copy, select and copy manually'); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){done(true);}, function(){done(false);});
+    } else {
+      try{
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        done(true);
+      }catch(e){ done(false); }
+    }
+  });
+
+  /* ---------- Toast ---------- */
+  var toastTimer;
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+  }
+
+  /* ---------- Init ---------- */
+  // sync currency toggle UI to stored state
+  document.querySelectorAll('#currToggle button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.curr === state.currency);
+  });
+  render();
+  showOnboardIfNeeded();
+
+})();
+</script>
+</body>
+</html>
